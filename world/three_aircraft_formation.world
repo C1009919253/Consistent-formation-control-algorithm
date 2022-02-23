@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+	<world name="default">
+
+		<!-- A ground plane -->
+		<include>
+			<uri>model://ground_plane</uri>
+		</include>
+
+		<!-- A global light source -->
+		<include>
+			<uri>model://sun</uri>
+		</include>
+
+		<!-- robot1 -->
+		<include>
+			<uri>model://my_robot</uri>
+			<name>robot1</name>
+			<pose>10 0 0 0 0 0</pose>
+			<plugin name='diff_drive' filename='libgazebo_ros_diff_drive.so'>
+				<ros>
+		            <namespace>/demo1</namespace>
+		            <remapping>cmd_vel:=cmd_demo</remapping>
+   	      			<remapping>odom:=odom_demo</remapping>
+   	    		</ros>
+
+   	    		<!-- wheels -->
+   	    		<left_joint>left_wheel_joint</left_joint>
+   	    		<right_joint>right_wheel_joint</right_joint>
+
+   	    		<!-- kinematics -->
+   	    		<wheel_separation>1.25</wheel_separation>
+   	    		<wheel_diameter>0.6</wheel_diameter>
+
+   	    		<!-- limits -->
+   	    		<max_wheel_torque>20</max_wheel_torque>
+   	    		<max_wheel_acceleration>1.0</max_wheel_acceleration>
+
+   	    		<!-- output -->
+   	    		<publish_odom>true</publish_odom>
+   	    		<publish_odom_tf>true</publish_odom_tf>
+   	    		<publish_wheel_tf>true</publish_wheel_tf>
+
+   	    		<odometry_frame>odom_demo</odometry_frame>
+   	    		<robot_base_frame>chassis</robot_base_frame>
+   	  		</plugin>
+   		</include>
+   	
+   		<!-- robot2 -->
+		<include>
+			<uri>model://my_robot</uri>
+			<name>robot2</name>
+			<pose>-5 5 0</pose>
+			<plugin name='diff_drive' filename='libgazebo_ros_diff_drive.so'>
+				<ros>
+		            <namespace>/demo2</namespace>
+		            <remapping>cmd_vel:=cmd_demo</remapping>
+   	      			<remapping>odom:=odom_demo</remapping>
+   	    		</ros>
+
+   	    		<!-- wheels -->
+   	    		<left_joint>left_wheel_joint</left_joint>
+   	    		<right_joint>right_wheel_joint</right_joint>
+
+   	    		<!-- kinematics -->
+   	    		<wheel_separation>1.25</wheel_separation>
+   	    		<wheel_diameter>0.6</wheel_diameter>
+
+   	    		<!-- limits -->
+   	    		<max_wheel_torque>20</max_wheel_torque>
+   	    		<max_wheel_acceleration>1.0</max_wheel_acceleration>
+
+   	    		<!-- output -->
+   	    		<publish_odom>true</publish_odom>
+   	    		<publish_odom_tf>true</publish_odom_tf>
+   	    		<publish_wheel_tf>true</publish_wheel_tf>
+
+   	    		<odometry_frame>odom_demo</odometry_frame>
+   	    		<robot_base_frame>chassis</robot_base_frame>
+   	  		</plugin>
+   		</include>
+   		
+    	<!-- robot3 -->
+		<include>
+			<uri>model://my_robot</uri>
+			<name>robot3</name>
+			<pose>-5 -5 0</pose>
+			<plugin name='diff_drive' filename='libgazebo_ros_diff_drive.so'>
+				<ros>
+		            <namespace>/demo3</namespace>
+		            <remapping>cmd_vel:=cmd_demo</remapping>
+    	   			<remapping>odom:=odom_demo</remapping>
+    	   		</ros>
+	
+	    		<!-- wheels -->
+        		<left_joint>left_wheel_joint</left_joint>
+        		<right_joint>right_wheel_joint</right_joint>
+	
+	    		<!-- kinematics -->
+        		<wheel_separation>1.25</wheel_separation>
+        		<wheel_diameter>0.6</wheel_diameter>
+	
+   	    		<!-- limits -->
+   	    		<max_wheel_torque>20</max_wheel_torque>
+   	    		<max_wheel_acceleration>1.0</max_wheel_acceleration>
+	
+   	    		<!-- output -->
+   	    		<publish_odom>true</publish_odom>
+   	    		<publish_odom_tf>true</publish_odom_tf>
+   	    		<publish_wheel_tf>true</publish_wheel_tf>
+	
+   	    		<odometry_frame>odom_demo</odometry_frame>
+   	    		<robot_base_frame>chassis</robot_base_frame>
+   	  		</plugin>
+   		</include>
+		
+	</world>
+</sdf>
