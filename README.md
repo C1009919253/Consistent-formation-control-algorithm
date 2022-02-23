@@ -7,11 +7,11 @@ The node graph is like:
 
 ## Test video
 
-<iframe height=498 width=510 src="./test_video/三角编队测试.webm">
+<iframe height=498 width=510 src="./test_video/test1.webm">
 
-<iframe height=498 width=510 src="./test_video/横行一字编队.webm">
+<iframe height=498 width=510 src="./test_video/test2.webm">
 
-<iframe height=498 width=510 src="./test_video/纵行.webm">
+<iframe height=498 width=510 src="./test_video/test3.webm">
 
 ## TODO:
 
