@@ -34,6 +34,9 @@ endif()
 
 include_directories(include ${Qt5Widgets_INCLUDE_DIRS})
 
+set(DIR_SRCS src/three_aircraft_control.cpp
+             src/Main_Controler.cpp)
+
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -47,7 +50,7 @@ find_package(ct_optcon REQUIRED)
 find_package(ct_models REQUIRED)
 add_executable(rkc src/test.cpp)
 ament_target_dependencies(rkc rclcpp std_msgs geometry_msgs nav_msgs)
-add_executable(tac src/three_aircraft_control.cpp)
+add_executable(tac ${DIR_SRCS})
 #ament_target_dependencies(tac rclcpp std_msgs geometry_msgs nav_msgs tf2_msgs tf2 tf2_geometry_msgs)
 ament_target_dependencies(tac rclcpp std_msgs geometry_msgs nav_msgs tf2_msgs tf2 tf2_geometry_msgs ct_core ct_rbd ct_optcon ct_models)
 
