@@ -33,6 +33,8 @@ Main_Controler::Main_Controler(): Node("Main_Controler"), count_(0)
     subscription2 = this->create_subscription<nav_msgs::msg::Odometry>("demo2/odom_demo", 10, std::bind(&Main_Controler::topic2_callback, this, std::placeholders::_1));
     subscription3 = this->create_subscription<nav_msgs::msg::Odometry>("demo3/odom_demo", 10, std::bind(&Main_Controler::topic3_callback, this, std::placeholders::_1));
 
+    subscription4 = this->create_subscription<three_aircraft_control::msg::Offsets>("MC/set_offsets", 10, std::bind(&Main_Controler::topic4_callback, this, std::placeholders::_1));
+
     offsetx12 = -20;
     offsety12 = 0;
     offsetx22 = 0;
@@ -58,7 +60,7 @@ void Main_Controler::timer2_callback()
     double vy2 = -0.25 * ((y2-y1-offsety12)+offsety22);
 
     double theta12 = atan2(vy2, vx2);
-    double v2 = vx2 / cos(theta12); // ➗0bug
+    double v2 = (abs(cos(theta12)) > abs(sin(theta12))) ? vx2 / cos(theta12) : vy2 / sin(theta12); // ➗0bug
     double w2 = theta12 - yaw2;
 
     if (abs(w2) > pie / 2)
@@ -70,15 +72,17 @@ void Main_Controler::timer2_callback()
             w2 = pie + w2;
     }
 
+    v2 = (abs(v2) < 2) ? v2 : v2/abs(v2)*2;
+
     twist2.linear.x = v2;
-    twist2.angular.z = w2*0.25;
+    twist2.angular.z = w2*1;
     publisher2->publish(twist2);
 
     double vx3 = -0.5 * ((x3-x1-offsetx13)+offsetx33);
     double vy3 = -0.5 * ((y3-y1-offsety13)+offsety33);
 
     double theta13 = atan2(vy3, vx3);
-    double v3 = vx3 / cos(theta13);
+    double v3 = (abs(cos(theta13)) > abs(sin(theta13))) ? vx3 / cos(theta13) : vy3 / sin(theta13);
     double w3 = theta13 - yaw3;
 
     if (abs(w3) > pie / 2)
@@ -90,8 +94,10 @@ void Main_Controler::timer2_callback()
             w3 = pie + w3;
     }
 
+    v3 = (abs(v3) < 2) ? v3 : v3/abs(v3)*2;
+
     twist3.linear.x = v3;
-    twist3.angular.z = w3*0.25;
+    twist3.angular.z = w3*1;
     publisher3->publish(twist3);
 
 }
@@ -133,4 +139,19 @@ void Main_Controler::topic3_callback(nav_msgs::msg::Odometry::SharedPtr odom)
     y3 = odom3.pose.pose.position.y;
     z3 = odom3.pose.pose.position.z;
 
+}
+
+void Main_Controler::topic4_callback(three_aircraft_control::msg::Offsets::SharedPtr offsets)
+{
+    three_aircraft_control::msg::Offsets offsetxx = *offsets;
+
+    offsetx12 = offsetxx.offsetx12;
+    offsetx13 = offsetxx.offsetx13;
+    offsetx22 = offsetxx.offsetx22;
+    offsetx33 = offsetxx.offsetx33;
+
+    offsety12 = offsetxx.offsety12;
+    offsety13 = offsetxx.offsety13;
+    offsety22 = offsetxx.offsety22;
+    offsety33 = offsetxx.offsety33;
 }

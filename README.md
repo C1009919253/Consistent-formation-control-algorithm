@@ -5,6 +5,16 @@ The node graph is like:
 
 ![a node graph](./image/rosgraph.png)
 
+## What it can do?
+
+~~Do a lot...~~
+
+Such as formation control, by publishing topic MC/set_offsets...
+
+You can test your control algorithm, while I just use position control...
+
+It may work, I hope so...
+
 ## Test video
 
 In test_video, github do not support open video in markdown...
@@ -35,11 +45,21 @@ You may see something great.
 
 03.02: Clean code and so on...
 
+Add limit of line speed... **It's more stable now!**
+
+Fix dividing zero bug...
+
+Add topic "MC/set_offsets" for formation setting, you can publish the topic to change formation...
+
+Add two new video...
+
 ## TODO:
 
-1. Add a subscription to change every robot's offset, choose the leader robot and so on.
-2. Add limit...（It's import!)
+1. ~~Add a subscription to change every robot's offset~~, choose the leader robot and so on.
+2. ~~Add limit...（It's import!)~~
 3. Add a controller like PID or MPC.(Now it's position control...)
-4. Fix bug...
+4. ~~Fix bug...~~ **Now no bug found!**
 5. ~~Make source away from hpp...~~(It's not import but easy...)
-6. Get some Wend-Oil, **I wanna sleep!!!** ~~And I'm gonna sleep!!!~~
+6. ~~Get some Wend-Oil~~, **I wanna sleep!!!** ~~And I'm gonna sleep!!!~~ Got a lot of wend-oil now...
+7. Test algorithm in real system...(Hope no error...)
+8. Clean code! It's too redundancy!!!!!

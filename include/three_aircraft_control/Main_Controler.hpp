@@ -37,7 +37,7 @@ private:
     void topic2_callback(nav_msgs::msg::Odometry::SharedPtr odom);
     void topic3_callback(nav_msgs::msg::Odometry::SharedPtr odom);
 
-
+    void topic4_callback(three_aircraft_control::msg::Offsets::SharedPtr offsets); // control the formation, NOTE: gobal coordinate system
 
     rclcpp::TimerBase::SharedPtr timer1, timer2;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher1, publisher2, publisher3; // robots' publishers
@@ -64,4 +64,6 @@ private:
     size_t count_;
 
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription1, subscription2, subscription3; // robots' subscription
+
+    rclcpp::Subscription<three_aircraft_control::msg::Offsets>::SharedPtr subscription4; // control the formation
 };
