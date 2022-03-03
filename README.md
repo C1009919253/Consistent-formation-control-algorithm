@@ -35,7 +35,7 @@ Then build by command "**colcon build**".
 
 Next, run command "**gazebo world/three_aircraft_formation.world**"
 
-Then run command "**ros2 run robot_key_control tac**"
+Then run command "**ros2 run three_aircraft_control three_aircraft_control_demo**"
 
 You may see something great.
 
@@ -53,13 +53,22 @@ Add topic "MC/set_offsets" for formation setting, you can publish the topic to c
 
 Add two new video...
 
+03.03: Add PID Controller, there is no  static error anymore...
+
+Test in a real robot! It works!
+
+But there comes many useless code...
+
+Add a video about the difference between PID and position control...
+
 ## TODO:
 
 1. ~~Add a subscription to change every robot's offset~~, choose the leader robot and so on.
 2. ~~Add limit...（It's import!)~~
-3. Add a controller like PID or MPC.(Now it's position control...)
+3. Add a controller like ~~PID~~ or MPC.(~~Now it's position control...~~)
 4. ~~Fix bug...~~ **Now no bug found!**
 5. ~~Make source away from hpp...~~(It's not import but easy...)
-6. ~~Get some Wend-Oil~~, **I wanna sleep!!!** ~~And I'm gonna sleep!!!~~ Got a lot of wend-oil now...
-7. Test algorithm in real system...(Hope no error...)
-8. Clean code! It's too redundancy!!!!!
+6. ~~Get some Wend-Oil~~, **I wanna sleep!!!** ~~And I'm gonna sleep!!!~~ Got a lot of wend-oil now... I have to do something in my dissertation... Oh Susanna, don't you cry for me... 
+7. ~~Test algorithm in real system...~~(Hope no ~~error~~...)
+8. Clean code! It's too redundancy!!!!! Code logic becomes rediculous??? (But works......)
+9. Fix PID output, it's negetive? To make code work, I put a - before the output......(That's really stupid...)

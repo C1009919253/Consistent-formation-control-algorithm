@@ -26,7 +26,10 @@ Main_Controler::Main_Controler(): Node("Main_Controler"), count_(0)
     publisher1 = this->create_publisher<geometry_msgs::msg::Twist>("demo1/cmd_demo", 10);
     publisher2 = this->create_publisher<geometry_msgs::msg::Twist>("demo2/cmd_demo", 10);
     publisher3 = this->create_publisher<geometry_msgs::msg::Twist>("demo3/cmd_demo", 10);
-    timer1 = this->create_wall_timer(50ms, std::bind(&Main_Controler::timer1_callback, this));
+
+    publisher_test = this->create_publisher<geometry_msgs::msg::Twist>("Vehicle3/cmd_vel", 10);
+
+    timer1 = this->create_wall_timer(1000ms, std::bind(&Main_Controler::timer1_callback, this));
     timer2 = this->create_wall_timer(50ms, std::bind(&Main_Controler::timer2_callback, this));
 
     subscription1 = this->create_subscription<nav_msgs::msg::Odometry>("demo1/odom_demo", 10, std::bind(&Main_Controler::topic1_callback, this, std::placeholders::_1));
@@ -35,19 +38,63 @@ Main_Controler::Main_Controler(): Node("Main_Controler"), count_(0)
 
     subscription4 = this->create_subscription<three_aircraft_control::msg::Offsets>("MC/set_offsets", 10, std::bind(&Main_Controler::topic4_callback, this, std::placeholders::_1));
 
-    offsetx12 = -20;
-    offsety12 = 0;
+    subscription_test = this->create_subscription<geometry_msgs::msg::Quaternion>("Vehicle3/object_topic", 10, std::bind(&Main_Controler::topic_callback_test, this, std::placeholders::_1));
+
+    offsetx12 = -10;
+    offsety12 = 10;
     offsetx22 = 0;
     offsety22 = 0;
-    offsetx13 = -40;
-    offsety13 = 0;
+    offsetx13 = -10;
+    offsety13 = -10;
     offsetx33 = 0;
     offsety33 = 0;
 
+    test = true;
+
+    params.k_p = 1;
+    params.k_i = 0.3;
+    params.k_d = 0.1;
+
+    pid = ct::core::PIDController<double>(params, setpoints);
+
+    current_time = 0;
+
 }
 
-void Main_Controler::timer1_callback()
+void Main_Controler::timer1_callback() // test~
 {
+    geometry_msgs::msg::Twist twist_test;
+    //twist_test.linear.x = (test) ? 0.1 : 0;
+    //test = false;
+
+    double x_g, y_g;
+    x_g = goal_location.y;
+    y_g = -goal_location.x;
+
+    double vx = -0.25 * ((x_g+0.5)+0); // offsets are all in reference coordinate system, to change them you maight compute tem
+    double vy = -0.25 * ((y_g-0)+0);
+
+    double theta = atan2(vy, vx);
+    double v = (abs(cos(theta)) > abs(sin(theta))) ? vx / cos(theta) : vy / sin(theta);
+    double w = theta;
+
+    if (abs(w) > pie / 2)
+    {
+        v = -v;
+        if (w > 0)
+            w = w - pie;
+        else
+            w = pie + w;
+    }
+
+    double v_m = 0.2;
+
+    v = (abs(v) < v_m) ? v : v/abs(v)*v_m;
+    v = (goal_location.w) ? v : 0;
+    twist_test.linear.x = -v;
+    twist_test.angular.z = w;
+
+    publisher_test->publish(twist_test);
 
 }
 
@@ -60,7 +107,7 @@ void Main_Controler::timer2_callback()
     double vy2 = -0.25 * ((y2-y1-offsety12)+offsety22);
 
     double theta12 = atan2(vy2, vx2);
-    double v2 = (abs(cos(theta12)) > abs(sin(theta12))) ? vx2 / cos(theta12) : vy2 / sin(theta12); // ➗0bug
+    double v2 = (abs(cos(theta12)) > abs(sin(theta12))) ? vx2 / cos(theta12) : vy2 / sin(theta12); // ➗0bug fixed
     double w2 = theta12 - yaw2;
 
     if (abs(w2) > pie / 2)
@@ -72,9 +119,11 @@ void Main_Controler::timer2_callback()
             w2 = pie + w2;
     }
 
+    v2 = pid.computeControl(v2, current_time);
+
     v2 = (abs(v2) < 2) ? v2 : v2/abs(v2)*2;
 
-    twist2.linear.x = v2;
+    twist2.linear.x = -v2;
     twist2.angular.z = w2*1;
     publisher2->publish(twist2);
 
@@ -99,6 +148,8 @@ void Main_Controler::timer2_callback()
     twist3.linear.x = v3;
     twist3.angular.z = w3*1;
     publisher3->publish(twist3);
+
+    current_time += 0.05;
 
 }
 
@@ -154,4 +205,10 @@ void Main_Controler::topic4_callback(three_aircraft_control::msg::Offsets::Share
     offsety13 = offsetxx.offsety13;
     offsety22 = offsetxx.offsety22;
     offsety33 = offsetxx.offsety33;
+}
+
+void Main_Controler::topic_callback_test(geometry_msgs::msg::Quaternion::SharedPtr tesst)
+{
+    goal_location = *tesst;
+    //printf("%f, %f, %f, %f", goal_location.x, goal_location.y, goal_location.z, goal_location.w);
 }

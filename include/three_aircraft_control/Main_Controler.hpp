@@ -1,3 +1,5 @@
+#pragma once
+
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -6,12 +8,14 @@
 #include <stdio.h>
 #include <cmath>
 #include <ct/core/core.h>
+#include <ct/core/control/continuous_time/siso/PIDController.h>
 
 #include "three_aircraft_control/msg/offsets.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/int32.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "geometry_msgs/msg/quaternion.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
 #include <tf2/LinearMath/Quaternion.h>
@@ -39,6 +43,8 @@ private:
 
     void topic4_callback(three_aircraft_control::msg::Offsets::SharedPtr offsets); // control the formation, NOTE: gobal coordinate system
 
+    void topic_callback_test(geometry_msgs::msg::Quaternion::SharedPtr tesst); // 接收位置信息
+
     rclcpp::TimerBase::SharedPtr timer1, timer2;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher1, publisher2, publisher3; // robots' publishers
     geometry_msgs::msg::Twist twist1, twist2, twist3; // robots' twists
@@ -63,7 +69,22 @@ private:
 
     size_t count_;
 
+    geometry_msgs::msg::Quaternion goal_location;
+
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subscription1, subscription2, subscription3; // robots' subscription
 
     rclcpp::Subscription<three_aircraft_control::msg::Offsets>::SharedPtr subscription4; // control the formation
+
+    rclcpp::Subscription<geometry_msgs::msg::Quaternion>::SharedPtr subscription_test; // for a test...
+
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_test;
+
+    bool test; // for test, do not use it expect you are me...
+
+    ct::core::PIDController<double>::parameters_t params;
+    ct::core::PIDController<double>::setpoint_t setpoints;
+    ct::core::PIDController<double> pid;
+
+    ct::core::Time current_time;
+
 };
