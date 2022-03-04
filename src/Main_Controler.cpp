@@ -53,11 +53,26 @@ Main_Controler::Main_Controler(): Node("Main_Controler"), count_(0)
 
     params.k_p = 1;
     params.k_i = 0.3;
-    params.k_d = 0.1;
+    params.k_d = 0.05;
 
     pid = ct::core::PIDController<double>(params, setpoints);
 
     current_time = 0;
+
+    ilqr_settings_mpc.dt = 0.01;
+    ilqr_settings_mpc.integrator = ct::core::IntegrationType::EULERCT;
+    ilqr_settings_mpc.discretization = ct::optcon::NLOptConSettings::APPROXIMATION::FORWARD_EULER;
+    ilqr_settings_mpc.max_iterations = 1;
+    ilqr_settings_mpc.nlocp_algorithm = ct::optcon::NLOptConSettings::NLOCP_ALGORITHM::ILQR;
+    ilqr_settings_mpc.lqocp_solver = ct::optcon::NLOptConSettings::LQOCP_SOLVER::GNRICCATI_SOLVER;
+    ilqr_settings_mpc.printSummary = false;
+
+    mpc_settings.stateForwardIntegration_ = true;
+    mpc_settings.postTruncation_ = true;
+    mpc_settings.measureDelay_ = true;
+    mpc_settings.delayMeasurementMultiplier_ = 1.0;
+    mpc_settings.mpc_mode = ct::optcon::MPC_MODE::FIXED_FINAL_TIME;
+    mpc_settings.coldStart_ = false;
 
 }
 

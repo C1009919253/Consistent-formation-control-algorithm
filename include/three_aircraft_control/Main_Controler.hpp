@@ -7,8 +7,12 @@
 #include <termio.h>
 #include <stdio.h>
 #include <cmath>
-#include <ct/core/core.h>
-#include <ct/core/control/continuous_time/siso/PIDController.h>
+//#include <ct/core/core.h> // included in optcon
+//#include <ct/core/control/continuous_time/siso/PIDController.h>
+#include <ct/optcon/optcon.h>
+//#include <ct/optcon/mpc/MPC.h>
+
+#include "sim_car_system.hpp"
 
 #include "three_aircraft_control/msg/offsets.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -85,6 +89,16 @@ private:
     ct::core::PIDController<double>::setpoint_t setpoints;
     ct::core::PIDController<double> pid;
 
+    const size_t state_dim = 3;
+    const size_t control_dim = 2;
+
     ct::core::Time current_time;
 
+    ct::optcon::NLOptConSettings ilqr_settings_mpc;
+    ct::optcon::mpc_settings mpc_settings;
+
+    ct::core::Time timeHorizon = 3.0;
+    ct::core::StateVector<3> x0; // initial state
+    std::shared_ptr<TAC::CAR::sim_car_system<double>> Car_Sim = new TAC::CAR::sim_car_system<double>();
+    //TAC::CAR::sim_car_system<double> *Car_Sim; // work
 };
