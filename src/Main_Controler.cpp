@@ -59,6 +59,15 @@ Main_Controler::Main_Controler(): Node("Main_Controler"), count_(0)
 
     current_time = 0;
 
+    ilqr_settings.dt = 0.01;  // the control discretization in [sec]
+    ilqr_settings.integrator = ct::core::IntegrationType::EULERCT;
+    ilqr_settings.discretization = ct::optcon::NLOptConSettings::APPROXIMATION::FORWARD_EULER;
+    ilqr_settings.max_iterations = 10;
+    ilqr_settings.nlocp_algorithm = ct::optcon::NLOptConSettings::NLOCP_ALGORITHM::ILQR;
+    ilqr_settings.lqocp_solver = ct::optcon::NLOptConSettings::LQOCP_SOLVER::
+        GNRICCATI_SOLVER;  // the LQ-problems are solved using a custom Gauss-Newton Riccati solver
+    ilqr_settings.printSummary = true;
+
     ilqr_settings_mpc.dt = 0.01;
     ilqr_settings_mpc.integrator = ct::core::IntegrationType::EULERCT;
     ilqr_settings_mpc.discretization = ct::optcon::NLOptConSettings::APPROXIMATION::FORWARD_EULER;
@@ -73,6 +82,43 @@ Main_Controler::Main_Controler(): Node("Main_Controler"), count_(0)
     mpc_settings.delayMeasurementMultiplier_ = 1.0;
     mpc_settings.mpc_mode = ct::optcon::MPC_MODE::FIXED_FINAL_TIME;
     mpc_settings.coldStart_ = false;
+
+    //Car_Sim.reset(new sim_car_system<double>);
+    x0.setZero();
+
+    bool verbose = true;
+    intermediateCost.reset(new ct::optcon::TermQuadratic<3, 2>); // useful?
+    finalCost.reset(new ct::optcon::TermQuadratic<3, 2>());
+    adLinearizer.reset(new ct::core::SystemLinearizer<3, 2>(Car_Sim));
+    intermediateCost->loadConfigFile(ct::optcon::exampleDir + "/mpcCost.info", "intermediateCost", verbose);
+    finalCost->loadConfigFile(ct::optcon::exampleDir + "/mpcCost.info", "finalCost", verbose);
+
+    costFunction.reset(new ct::optcon::CostFunctionAnalytical<3, 2>());
+
+    costFunction->addIntermediateTerm(intermediateCost);
+    costFunction->addFinalTerm(finalCost);
+    //costFunction->addIntermediateTerm(intermediateCost)
+
+    optConProblem = ct::optcon::ContinuousOptConProblem<3, 2>(timeHorizon, x0, Car_Sim, costFunction, adLinearizer);
+
+    ct::optcon::NLOptConSolver<3, 2> iLQR(optConProblem, ilqr_settings);//iLQR = ct::optcon::NLOptConSolver<3, 2>(optConProblem, ilqr_settings);
+
+    size_t K = ilqr_settings.computeK(timeHorizon);
+
+    ct::core::FeedbackArray<3, 2> u0_fb(K, ct::core::FeedbackMatrix<3, 2>::Zero());
+    ct::core::ControlVectorArray<2> u0_ff(K, ct::core::ControlVector<2>::Zero());
+    ct::core::StateVectorArray<3> x_ref_init(K + 1, x0);
+    ct::optcon::NLOptConSolver<3, 2>::Policy_t initController(x_ref_init, u0_ff, u0_fb, ilqr_settings.dt);
+
+    iLQR.setInitialGuess(initController);
+    iLQR.solve();
+    ct::core::StateFeedbackController<3, 2> initialSolution = iLQR.getSolution();
+
+    //ilqr_mpc = ct::optcon::MPC<ct::optcon::NLOptConSolver<3, 2>>(optConProblem, ilqr_settings_mpc, mpc_settings);
+
+    static ct::optcon::MPC<ct::optcon::NLOptConSolver<3, 2>> ilqr_mpc(optConProblem, ilqr_settings_mpc, mpc_settings);
+
+    ilqr_mpc.setInitialGuess(initialSolution);
 
 }
 

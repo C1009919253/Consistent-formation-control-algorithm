@@ -13,6 +13,7 @@
 //#include <ct/optcon/mpc/MPC.h>
 
 #include "sim_car_system.hpp"
+#include "exampleDir.h"
 
 #include "three_aircraft_control/msg/offsets.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -94,11 +95,28 @@ private:
 
     ct::core::Time current_time;
 
+    ct::optcon::NLOptConSettings ilqr_settings;
     ct::optcon::NLOptConSettings ilqr_settings_mpc;
     ct::optcon::mpc_settings mpc_settings;
 
     ct::core::Time timeHorizon = 3.0;
     ct::core::StateVector<3> x0; // initial state
-    std::shared_ptr<TAC::CAR::sim_car_system<double>> Car_Sim = new TAC::CAR::sim_car_system<double>();
-    //TAC::CAR::sim_car_system<double> *Car_Sim; // work
+
+    std::shared_ptr<TAC::CAR::sim_car_system<double>> Car_Sim;
+    //auto Car_Sim = std::make_shared<TAC::CAR::sim_car_system<double>>;
+    //std::shared_ptr<ct::core::ControlledSystem<3, 2>> Car_Sim;
+
+    std::shared_ptr<ct::optcon::TermQuadratic<3, 2>> intermediateCost;
+    //ct::optcon::TermQuadratic<3, 2>* intermediateCost = new ct::optcon::TermQuadratic<3, 2>;
+    std::shared_ptr<ct::optcon::TermQuadratic<3, 2>> finalCost;
+    //ct::optcon::TermQuadratic<3, 2>* finalCost = new ct::optcon::TermQuadratic<3, 2>;
+    std::shared_ptr<ct::optcon::CostFunctionQuadratic<3, 2>> costFunction;
+    //ct::optcon::CostFunctionQuadratic<3, 2>* costFunction = new ct::optcon::CostFunctionAnalytical<3, 2>;
+    std::shared_ptr<ct::core::SystemLinearizer<3, 2>> adLinearizer;
+
+    ct::optcon::ContinuousOptConProblem<3, 2> optConProblem;
+
+    //ct::optcon::NLOptConSolver<3, 2> iLQR;
+    //ct::optcon::ContinuousOptConProblem<3, 2>, ct::optcon::NLOptConSettings, ct::optcon::mpc_settings);
+
 };

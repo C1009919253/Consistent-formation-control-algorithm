@@ -65,6 +65,8 @@ Add a video about the difference between PID and position control...
 
 Working on MPC, but a little difficult...
 
+03.06: Find a way to build a MPC with control toolbox, finally it's over... for now...
+
 ## TODO:
 
 1. ~~Add a subscription to change every robot's offset~~, choose the leader robot and so on.
@@ -76,3 +78,4 @@ Working on MPC, but a little difficult...
 7. ~~Test algorithm in real system...~~(Hope no ~~error~~...)
 8. Clean code! It's too redundancy!!!!! Code logic becomes rediculous??? (But works......)
 9. Fix PID output, it's negetive? To make code work, I put a - before the output......(That's really stupid...)
+10. Add MPC!
