@@ -29,6 +29,10 @@ find_package(ct_rbd REQUIRED)
 find_package(ct_optcon REQUIRED)
 find_package(ct_models REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(hpipm REQUIRED)
+find_package(blasfeo REQUIRED)
+#find_package(Eigen REQUIRED)
+#find_package(cpaad REQUIRED)
 
 include_directories(include)
 

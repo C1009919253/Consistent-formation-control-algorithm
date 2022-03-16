@@ -20,6 +20,8 @@
   <depend>ct_rbd</depend>
   <depend>ct_optcon</depend>
   <depend>ct_models</depend>
+  <depend>hpipm</depend>
+  <depend>blasfeo</depend>
   
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 

@@ -1,5 +1,51 @@
 #include "three_aircraft_control/Main_Controler.hpp"
 
+// Adapted from
+// https://github.com/JunshengFu/Model-Predictive-Control/tree/master/src/main.cpp
+
+void map2car(double px, double py, double psi, const vector<double>& ptsx_map, const vector<double>& ptsy_map,
+             Eigen::VectorXd & ptsx_car, Eigen::VectorXd & ptsy_car){
+
+  for(size_t i=0; i< ptsx_map.size(); i++){
+    double dx = ptsx_map[i] - px;
+    double dy = ptsy_map[i] - py;
+    ptsx_car[i] = dx * cos(-psi) - dy * sin(-psi);
+    ptsy_car[i] = dx * sin(-psi) + dy * cos(-psi);
+    /*ptsx_car[i] = ptsx_map[i];
+    ptsy_car[i] = ptsy_map[i];*/
+  }
+}
+
+// Adapted from
+// https://github.com/JuliaMath/Polynomials.jl/blob/master/src/Polynomials.jl#L676-L716
+
+Eigen::VectorXd polyfit(Eigen::VectorXd xvals, Eigen::VectorXd yvals,
+                        int order) {
+  assert(xvals.size() == yvals.size());
+  assert(order >= 1 && order <= xvals.size() - 1);
+  Eigen::MatrixXd A(xvals.size(), order + 1);
+
+  for (int i = 0; i < xvals.size(); i++) {
+    A(i, 0) = 1.0;
+  }
+
+  for (int j = 0; j < xvals.size(); j++) {
+    for (int i = 0; i < order; i++) {
+      A(j, i + 1) = A(j, i) * xvals(j);
+    }
+  }
+
+  auto Q = A.householderQr();
+  auto result = Q.solve(yvals);
+  return result;
+  /*Eigen::VectorXd result(xvals.size());
+  for (int i = 0; i < xvals.size(); i++) {
+      result(i) = 1;
+  }
+  return result;*/
+}
+
+
 Main_Controler::Main_Controler(): Node("Main_Controler"), count_(0)
 {
     twist1.linear.x = 0.0;
@@ -31,6 +77,7 @@ Main_Controler::Main_Controler(): Node("Main_Controler"), count_(0)
 
     timer1 = this->create_wall_timer(1000ms, std::bind(&Main_Controler::timer1_callback, this));
     timer2 = this->create_wall_timer(50ms, std::bind(&Main_Controler::timer2_callback, this));
+    timer3 = this->create_wall_timer(50ms, std::bind(&Main_Controler::timer3_callback, this));
 
     subscription1 = this->create_subscription<nav_msgs::msg::Odometry>("demo1/odom_demo", 10, std::bind(&Main_Controler::topic1_callback, this, std::placeholders::_1));
     subscription2 = this->create_subscription<nav_msgs::msg::Odometry>("demo2/odom_demo", 10, std::bind(&Main_Controler::topic2_callback, this, std::placeholders::_1));
@@ -52,75 +99,151 @@ Main_Controler::Main_Controler(): Node("Main_Controler"), count_(0)
     test = true;
 
     params.k_p = 1;
-    params.k_i = 0.3;
-    params.k_d = 0.05;
+    params.k_i = 0.15;
+    params.k_d = 0.00;
 
     pid = ct::core::PIDController<double>(params, setpoints);
 
     current_time = 0;
 
-    ilqr_settings.dt = 0.01;  // the control discretization in [sec]
-    ilqr_settings.integrator = ct::core::IntegrationType::EULERCT;
-    ilqr_settings.discretization = ct::optcon::NLOptConSettings::APPROXIMATION::FORWARD_EULER;
-    ilqr_settings.max_iterations = 10;
-    ilqr_settings.nlocp_algorithm = ct::optcon::NLOptConSettings::NLOCP_ALGORITHM::ILQR;
-    ilqr_settings.lqocp_solver = ct::optcon::NLOptConSettings::LQOCP_SOLVER::
-        GNRICCATI_SOLVER;  // the LQ-problems are solved using a custom Gauss-Newton Riccati solver
-    ilqr_settings.printSummary = true;
+    //x0.setZero();
+    //start_time = std::chrono::high_resolution_clock::now();
+}
 
-    ilqr_settings_mpc.dt = 0.01;
-    ilqr_settings_mpc.integrator = ct::core::IntegrationType::EULERCT;
-    ilqr_settings_mpc.discretization = ct::optcon::NLOptConSettings::APPROXIMATION::FORWARD_EULER;
+/*void Main_Controler::create_controller(const ct::core::StateVector<3>& x_init, const ct::core::StateVector<3>& x_ref)
+{
+    // Step 1: setup Nonlinear Optimal Control Problem
+
+    const size_t state_dim = 3;
+    const size_t control_dim = 2;
+
+    double w_n = 0.1;
+    double zeta = 5.0;
+    double g_dc = 1.0;
+
+    // Step 1-A: create controller instance
+
+    std::shared_ptr<ct::core::ControlledSystem<state_dim, control_dim>> oscillatorDynamics(
+        new TAC::CAR::sim_car_system<double>(w_n, zeta));
+
+    // Step 1-B: create a numerical linearizer
+
+    std::shared_ptr<ct::core::SystemLinearizer<state_dim, control_dim>> adLinearizer(new
+        SystemLinearizer<state_dim, control_dim>(oscillatorDynamics)
+    );
+
+
+    // STEP 1-C: create a cost function.
+    std::shared_ptr<ct::optcon::TermQuadratic<state_dim, control_dim>> intermediateCost(
+        new ct::optcon::TermQuadratic<state_dim, control_dim>());
+    std::shared_ptr<ct::optcon::TermQuadratic<state_dim, control_dim>> finalCost(
+        new ct::optcon::TermQuadratic<state_dim, control_dim>());
+    this->termQuad_interm = intermediateCost;
+    this->termQuad_final = finalCost;
+
+    this->termQuad_interm->loadConfigFile(exampleDir + "/mpcCost.info", "intermediateCost");
+    this->termQuad_final->loadConfigFile(exampleDir + "/mpcCost.info", "finalCost");
+    this->termQuad_interm->updateReferenceState(this->x_ref);
+    this->termQuad_final->updateReferenceState(this->x_ref);
+
+
+    CostFuncPtr_t costFunction(
+        new CostFunctionAnalytical<state_dim, control_dim>());
+    this->costFunc = costFunction;
+
+    this->costFunc->addIntermediateTerm(this->termQuad_interm);
+    this->costFunc->addFinalTerm(this->termQuad_final);
+
+    // Check which cost function should I use here.
+
+    // STEP 1-D: initialization with initial state and desired time horizon
+
+    ct::core::Time timeHorizon = 3.0;
+
+    // STEP 1-E: create and initialize an "optimal control problem"
+    ContinuousOptConProblem<state_dim, control_dim> optConProblem(
+        timeHorizon, x_init, oscillatorDynamics, this->costFunc, adLinearizer);
+
+    // STEP 2-A: Create the settings.
+
+    NLOptConSettings nloc_settings;
+    nloc_settings.load(exampleDir + "/lqrCost.info", true, "ilqr");
+
+    // STEP 2-B: provide an initial guess
+    N = nloc_settings.computeK(timeHorizon);
+    FeedbackMatrix<state_dim, control_dim> u_fb;
+    u_fb << 0, 0, 0, 0, 0, 0;
+    FeedbackArray<state_dim, control_dim> u0_fb(N, -u_fb);
+    ControlVectorArray<control_dim> u0_ff(N, ControlVector<control_dim>::Zero());
+    StateVectorArray<state_dim> x_ref_init(N + 1, x_ref);
+    NLOptConSolver<state_dim, control_dim>::Policy_t initController(x_ref_init, u0_ff, u0_fb, nloc_settings.dt);
+    // How to create a more complicated controller for iterations?
+
+    // STEP 2-C: create an NLOptConSolver instance
+    //NLOPPtr_t iLQR(new NLOptConSolver<state_dim, control_dim>(optConProblem, nloc_settings));
+    NLOptConSolver<state_dim, control_dim> iLQR(optConProblem, nloc_settings);
+    //this->nlop_problem = iLQR;
+
+    //this->nlop_problem->setInitialGuess(initController);
+    iLQR.setInitialGuess(initController);
+
+    // STEP 3: solve the optimal control problem
+    //this->nlop_problem->solve();
+    iLQR.solve();
+
+    // STEP 4: retrieve the solution
+
+    // plotResultsOscillator<state_dim, control_dim>(x_ref_init,
+    //                                             u0_fb,
+    //                                             u0_ff,
+    //                                             TimeArray(N + 1, timeHorizon));
+
+    //ct::core::StateFeedbackController<state_dim, control_dim> solution = this->nlop_problem->getSolution();
+    ct::core::StateFeedbackController<state_dim, control_dim> solution = iLQR.getSolution();
+
+    /*  MPC-EXAMPLE
+    * we store the initial solution obtained from solving the initial optimal control problem,
+    * and re-use it to initialize the MPC solver in the following. */
+    /* STEP 1: first, we set up an MPC instance for the iLQR solver and configure it. Since the MPC
+    * class is wrapped around normal Optimal Control Solvers, we need to different kind of settings,
+    * those for the optimal control solver, and those specific to MPC: */
+    // 1) settings for the iLQR instance used in MPC. Of course, we use the same settings
+    // as for solving the initial problem ...
+    /*NLOptConSettings ilqr_settings_mpc = nloc_settings;
+    // ... however, in MPC-mode, it makes sense to limit the overall number of iLQR iterations (real-time iteration scheme)
     ilqr_settings_mpc.max_iterations = 1;
-    ilqr_settings_mpc.nlocp_algorithm = ct::optcon::NLOptConSettings::NLOCP_ALGORITHM::ILQR;
-    ilqr_settings_mpc.lqocp_solver = ct::optcon::NLOptConSettings::LQOCP_SOLVER::GNRICCATI_SOLVER;
-    ilqr_settings_mpc.printSummary = false;
-
+    // and we limited the printouts, too.
+    ilqr_settings_mpc.printSummary = true;
+    // 2) settings specific to model predictive control. For a more detailed description of those, visit ct/optcon/mpc/MpcSettings.h
+    ct::optcon::mpc_settings mpc_settings;
     mpc_settings.stateForwardIntegration_ = true;
     mpc_settings.postTruncation_ = true;
     mpc_settings.measureDelay_ = true;
     mpc_settings.delayMeasurementMultiplier_ = 1.0;
-    mpc_settings.mpc_mode = ct::optcon::MPC_MODE::FIXED_FINAL_TIME;
+    mpc_settings.mpc_mode = ct::optcon::MPC_MODE::CONSTANT_RECEDING_HORIZON;
     mpc_settings.coldStart_ = false;
+    // STEP 2 : Create the iLQR-MPC object, based on the optimal control problem and the selected settings.
+    MPCPtr_t ilqr_mpc(new MPC<NLOptConSolver<state_dim, control_dim>>(optConProblem, ilqr_settings_mpc, mpc_settings));
 
-    //Car_Sim.reset(new sim_car_system<double>);
-    x0.setZero();
+    // initialize it using the previously computed initial controller
+    this->mpc = ilqr_mpc;
+    this->mpc->setInitialGuess(solution);
+}*/
 
-    bool verbose = true;
-    intermediateCost.reset(new ct::optcon::TermQuadratic<3, 2>); // useful?
-    finalCost.reset(new ct::optcon::TermQuadratic<3, 2>());
-    adLinearizer.reset(new ct::core::SystemLinearizer<3, 2>(Car_Sim));
-    intermediateCost->loadConfigFile(ct::optcon::exampleDir + "/mpcCost.info", "intermediateCost", verbose);
-    finalCost->loadConfigFile(ct::optcon::exampleDir + "/mpcCost.info", "finalCost", verbose);
+/*void Main_Controler::pos_message_converter(const nav_msgs::msg::Odometry odom, ct::core::StateVector<3>& x)
+{
+    x(0) = odom.pose.pose.position.x;
+    x(1) = odom.pose.pose.position.y;
 
-    costFunction.reset(new ct::optcon::CostFunctionAnalytical<3, 2>());
+    double roll, pitch, yaw;
 
-    costFunction->addIntermediateTerm(intermediateCost);
-    costFunction->addFinalTerm(finalCost);
-    //costFunction->addIntermediateTerm(intermediateCost)
+    tf2::Quaternion imu(odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w);
+    tf2::Matrix3x3 m(imu);
+    m.getRPY(roll, pitch, yaw);
 
-    optConProblem = ct::optcon::ContinuousOptConProblem<3, 2>(timeHorizon, x0, Car_Sim, costFunction, adLinearizer);
+    x(2) = yaw;
 
-    ct::optcon::NLOptConSolver<3, 2> iLQR(optConProblem, ilqr_settings);//iLQR = ct::optcon::NLOptConSolver<3, 2>(optConProblem, ilqr_settings);
-
-    size_t K = ilqr_settings.computeK(timeHorizon);
-
-    ct::core::FeedbackArray<3, 2> u0_fb(K, ct::core::FeedbackMatrix<3, 2>::Zero());
-    ct::core::ControlVectorArray<2> u0_ff(K, ct::core::ControlVector<2>::Zero());
-    ct::core::StateVectorArray<3> x_ref_init(K + 1, x0);
-    ct::optcon::NLOptConSolver<3, 2>::Policy_t initController(x_ref_init, u0_ff, u0_fb, ilqr_settings.dt);
-
-    iLQR.setInitialGuess(initController);
-    iLQR.solve();
-    ct::core::StateFeedbackController<3, 2> initialSolution = iLQR.getSolution();
-
-    //ilqr_mpc = ct::optcon::MPC<ct::optcon::NLOptConSolver<3, 2>>(optConProblem, ilqr_settings_mpc, mpc_settings);
-
-    static ct::optcon::MPC<ct::optcon::NLOptConSolver<3, 2>> ilqr_mpc(optConProblem, ilqr_settings_mpc, mpc_settings);
-
-    ilqr_mpc.setInitialGuess(initialSolution);
-
-}
+}*/
 
 void Main_Controler::timer1_callback() // test~
 {
@@ -164,7 +287,7 @@ void Main_Controler::timer2_callback()
     twist1.linear.x = 1;
     publisher1->publish(twist1); // leader run with no eye
 
-    double vx2 = -0.25 * ((x2-x1-offsetx12)+offsetx22); // offsets are all in reference coordinate system, to change them you maight compute tem
+    /*double vx2 = -0.25 * ((x2-x1-offsetx12)+offsetx22); // offsets are all in reference coordinate system, to change them you maight compute tem
     double vy2 = -0.25 * ((y2-y1-offsety12)+offsety22);
 
     double theta12 = atan2(vy2, vx2);
@@ -180,16 +303,122 @@ void Main_Controler::timer2_callback()
             w2 = pie + w2;
     }
 
-    v2 = pid.computeControl(v2, current_time);
+    auto current_time = std::chrono::high_resolution_clock::now();
+    ct::core::Time t = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count();
+    ilqr_mpc.prepareIteration(t);
+
+
+    ct::core::Time ts_newPolicy;
+
+    current_time = std::chrono::high_resolution_clock::now();
+    t = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count();
+
+    bool success = ilqr_mpc.finishIteration(x2, t, newPolicy, ts_newPolicy);
+
+    if (ilqr_mpc.timeHorizonReached() | !success)
+    {
+        RCLCPP_INFO(this->get_logger(), "Something error!\n");
+    }
+
+    ControlVector<2> u;
+
+    newPolicy.computeControl(x2, t-ts_newPolicy,u);
+
+    v2 = u(0);
+    w2 = u(1);
+
+
+    //v2 = pid.computeControl(v2, current_time);
 
     v2 = (abs(v2) < 2) ? v2 : v2/abs(v2)*2;
 
     twist2.linear.x = -v2;
     twist2.angular.z = w2*1;
+    publisher2->publish(twist2);*/
+
+    /*if (controller_not_created_)
+        return; // Only start to publish when the mpc controller is created
+
+    const size_t state_dim = 3;
+    const size_t control_dim = 2;
+
+    current_time = std::chrono::high_resolution_clock::now();
+    ct::core::Time t = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count();
+    this->mpc->prepareIteration(t);
+    current_time = std::chrono::high_resolution_clock::now();
+    t = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count();
+    this->mpc->finishIteration(this->x_now, t, newPolicy, ts_newPolicy);
+    current_time = std::chrono::high_resolution_clock::now();
+    t = 1e-6 * std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count();
+    ControlVector<control_dim> u;
+    newPolicy.computeControl(this->x_now, t - ts_newPolicy, u);
+
+    double v2 = u(0)/10;
+    double w2 = u(1)/100;
+
+    RCLCPP_INFO(this->get_logger(), "output:%f,%f\n", v2, w2);*/
+
+    double vx2 = -0.25 * ((x2-x1-offsetx12)+offsetx22); // offsets are all in reference coordinate system, to change them you maight compute tem
+    double vy2 = -0.25 * ((y2-y1-offsety12)+offsety22);
+    double theta12 = atan2(vy2, vx2);
+    double pv2 = (abs(cos(theta12)) > abs(sin(theta12))) ? vx2 / cos(theta12) : vy2 / sin(theta12); // ➗0bug fixed
+    double pw2 = theta12 - yaw2;
+
+    if (abs(pw2) > pie / 2)
+    {
+        pv2 = -pv2;
+        if (pw2 > 0)
+            pw2 = pw2 - pie;
+        else
+            pw2 = pie + pw2;
+    }
+
+    //pv2 = -pid.computeControl(pv2, current_time);
+
+
+    Eigen::VectorXd ptsx_car(ptsx2.size());
+    Eigen::VectorXd ptsy_car(ptsy2.size());
+
+    map2car(x2, y2, yaw2, ptsx2, ptsy2, ptsx_car, ptsy_car);
+
+    if(ptsx_car.size() < 4)
+        return;
+
+    auto coeffs = polyfit(ptsx_car, ptsy_car, 3);
+
+    Eigen::VectorXd state(3);
+
+    double v2 = odom2.twist.twist.linear.x;
+
+    double px2 = 0 + v2 * cos(0) * 0.1;
+    double py2 = 0 + v2 * sin(0) * 0.1;
+    double psi2 = 0 - odom2.twist.twist.angular.z;
+
+    state << px2, py2, psi2;
+
+    auto vars = mpc.Solve(state, coeffs, pv2, -pw2);
+
+    double w2 = -vars[0];
+    v2 = vars[1];
+
+    //v2 = -pid.computeControl(v2, current_time);
+
+
+    /*v2 = (abs(v2) < 2) ? v2 : v2/abs(v2)*2;
+
+    w2 = (abs(w2) < 2) ? w2 : w2/abs(w2)*2;*/
+
+    twist2.linear.x = v2;
+    twist2.angular.z = w2;
     publisher2->publish(twist2);
+
+    ptsx2.clear();
+    ptsy2.clear();
 
     double vx3 = -0.5 * ((x3-x1-offsetx13)+offsetx33);
     double vy3 = -0.5 * ((y3-y1-offsety13)+offsety33);
+
+
 
     double theta13 = atan2(vy3, vx3);
     double v3 = (abs(cos(theta13)) > abs(sin(theta13))) ? vx3 / cos(theta13) : vy3 / sin(theta13);
@@ -214,8 +443,47 @@ void Main_Controler::timer2_callback()
 
 }
 
-void Main_Controler::topic1_callback(nav_msgs::msg::Odometry::SharedPtr odom)
+void Main_Controler::timer3_callback()
 {
+    /*nav_msgs::msg::Odometry msg;
+    msg.pose.pose.position.x = x1 - offsetx12 - x_now(0);
+    msg.pose.pose.position.y = y1 - offsety12 - x_now(1);
+
+    RCLCPP_INFO(this->get_logger(), "X_REF:%f,%f\n",msg.pose.pose.position.x,msg.pose.pose.position.y);
+
+    if (controller_not_created_)
+    {
+        if (first_pass_2)
+            return;
+
+        Main_Controler::pos_message_converter(msg, this->x_ref);
+        Main_Controler::create_controller(this->x_now, this->x_ref);
+        x_ref_current = this->x_ref;
+        start_time = std::chrono::high_resolution_clock::now();
+        controller_not_created_ = false;
+        return;
+    }
+    Main_Controler::pos_message_converter(msg, this->x_ref);
+
+    if (x_ref_current == this->x_ref)
+        return;
+    else
+    {//RCLCPP_INFO(this->get_logger(), "change!\n");
+        // Main_Controler::create_controller(this->x_now, this->x_ref);
+        this->termQuad_interm->updateReferenceState(this->x_ref);
+        this->termQuad_final->updateReferenceState(this->x_ref);
+        this->costFunc->addIntermediateTerm(this->termQuad_interm);
+        this->costFunc->addFinalTerm(this->termQuad_final);
+        auto solver = this->mpc->getSolver();
+        solver.changeCostFunction(this->costFunc);
+
+        x_ref_current = this->x_ref;
+        start_time = std::chrono::high_resolution_clock::now();
+    }*/
+}
+
+void Main_Controler::topic1_callback(nav_msgs::msg::Odometry::SharedPtr odom)
+{//RCLCPP_INFO(this->get_logger(), "12!\n");
     odom1 = *odom;
     tf2::Quaternion imu(odom1.pose.pose.orientation.x, odom1.pose.pose.orientation.y, odom1.pose.pose.orientation.z, odom1.pose.pose.orientation.w);
     tf2::Matrix3x3 m(imu);
@@ -224,6 +492,9 @@ void Main_Controler::topic1_callback(nav_msgs::msg::Odometry::SharedPtr odom)
     x1 = odom1.pose.pose.position.x;
     y1 = odom1.pose.pose.position.y;
     z1 = odom1.pose.pose.position.z;
+
+    ptsx2.push_back(x1 + offsetx12);
+    ptsy2.push_back(y1 + offsety12);
 
 }
 
@@ -237,6 +508,21 @@ void Main_Controler::topic2_callback(nav_msgs::msg::Odometry::SharedPtr odom)
     x2 = odom2.pose.pose.position.x;
     y2 = odom2.pose.pose.position.y;
     z2 = odom2.pose.pose.position.z;
+
+
+
+    /*if (first_pass_2)
+    {
+        Main_Controler::pos_message_converter(*odom, this->x_now);
+        first_pass_2 = false;
+        //RCLCPP_INFO(this->get_logger(), "1!\n");
+        return;
+    }
+    if (controller_not_created_)
+        return;
+
+    Main_Controler::pos_message_converter(*odom, this->x_now);
+    RCLCPP_INFO(this->get_logger(), "X_NOW:%f,%f\n",x_now(0),x_now(1));*/
 
 }
 
@@ -254,7 +540,7 @@ void Main_Controler::topic3_callback(nav_msgs::msg::Odometry::SharedPtr odom)
 }
 
 void Main_Controler::topic4_callback(three_aircraft_control::msg::Offsets::SharedPtr offsets)
-{
+{   //RCLCPP_INFO(this->get_logger(), "1!\n");
     three_aircraft_control::msg::Offsets offsetxx = *offsets;
 
     offsetx12 = offsetxx.offsetx12;
@@ -266,6 +552,7 @@ void Main_Controler::topic4_callback(three_aircraft_control::msg::Offsets::Share
     offsety13 = offsetxx.offsety13;
     offsety22 = offsetxx.offsety22;
     offsety33 = offsetxx.offsety33;
+
 }
 
 void Main_Controler::topic_callback_test(geometry_msgs::msg::Quaternion::SharedPtr tesst)

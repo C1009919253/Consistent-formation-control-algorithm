@@ -9,7 +9,7 @@ namespace ct {
 namespace optcon {
 
 // the following path will be set automatically during building (do not copy this file manually!)
-static const std::string exampleDir = "/home/wsf/Git_Src/control-toolbox/ct_optcon/examples";
+static const std::string exampleDir = "/home/wsf/ros2_ws/src/three_aircraft_control/config";
 
 }
 }
