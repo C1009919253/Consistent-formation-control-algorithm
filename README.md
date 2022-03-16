@@ -67,7 +67,7 @@ Working on MPC, but a little difficult...
 
 03.06: Find a way to build a MPC with control toolbox, finally it's over... for now...
 
-03.16: I ADD A MPC ON ROBOT2!!! Thanks to [JunshengFu/Model-Predictive-Control](https://github.com/JunshengFu/Model-Predictive-Control) that gives me inspiration, I change his code in my_mpc.hpp, mostly the model and the cost function.
+03.16: I ADD A MPC ON ROBOT2!!! Thanks to [JunshengFu/Model-Predictive-Control](https://github.com/JunshengFu/Model-Predictive-Control) that gives me inspiration, I change his code to my_mpc.hpp, mostly the model and the cost function.
 
 ## TODO:
 
