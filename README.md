@@ -69,6 +69,8 @@ Working on MPC, but a little difficult...
 
 03.16: I ADD A MPC ON ROBOT2!!! Thanks to [JunshengFu/Model-Predictive-Control](https://github.com/JunshengFu/Model-Predictive-Control) that gives me inspiration, I change his code to my_mpc.hpp, mostly the model and the cost function.
 
+0.3.17: Clean some code...
+
 ## TODO:
 
 1. ~~Add a subscription to change every robot's offset~~, choose the leader robot and so on.
@@ -81,4 +83,4 @@ Working on MPC, but a little difficult...
 8. Clean code! It's too redundancy!!!!! Code logic becomes rediculous??? (But works......)
 9. Fix PID output, it's negetive? To make code work, I put a - before the output......(That's really stupid...)
 10. ~~Add MPC!~~
-# 11. **CLEARN YOUR CODE! IT IS REDUNDANCY AGAIN!!!**
+11. ~~**CLEARN YOUR CODE! IT IS REDUNDANCY AGAIN!!!**~~

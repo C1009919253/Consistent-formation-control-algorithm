@@ -48,10 +48,6 @@ public:
 
     Main_Controler();
 
-    //void create_controller(const ct::core::StateVector<3>& x_init, const ct::core::StateVector<3>& x_ref);
-
-    //void pos_message_converter(const nav_msgs::msg::Odometry odom, ct::core::StateVector<3>& x);
-
 private:
     void timer1_callback(); // for some test?
     void timer2_callback(); // 作为robot1,2,3的控制器
@@ -69,8 +65,6 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher1, publisher2, publisher3; // robots' publishers
     geometry_msgs::msg::Twist twist1, twist2, twist3; // robots' twists
     nav_msgs::msg::Odometry odom1, odom2, odom3; // robots' pose (include Quaternion and Pose)
-
-    //double gx, gy, gz, gYaw;
 
     double roll1, pitch1, yaw1; // robots' rotation
     double roll2, pitch2, yaw2;
@@ -111,66 +105,5 @@ private:
     ct::core::PIDController<double> pid;
 
     double current_time;
-
-    /*const size_t state_dim = 3;
-    const size_t control_dim = 2;
-
-
-
-    ct::optcon::NLOptConSettings ilqr_settings;
-    ct::optcon::NLOptConSettings ilqr_settings_mpc;
-    ct::optcon::mpc_settings mpc_settings;
-
-    ct::core::Time timeHorizon = 3.0;*/
-    //ct::core::StateVector<3> x2; // initial state
-
-    //std::shared_ptr<TAC::CAR::sim_car_system<double>> Car_Sim;
-    //auto Car_Sim = std::make_shared<TAC::CAR::sim_car_system<double>>;
-    /*std::shared_ptr<ct::core::ControlledSystem<3, 2>> Car_Sim;
-
-    std::shared_ptr<ct::optcon::TermQuadratic<3, 2>> intermediateCost;
-    //ct::optcon::TermQuadratic<3, 2>* intermediateCost = new ct::optcon::TermQuadratic<3, 2>;
-    std::shared_ptr<ct::optcon::TermQuadratic<3, 2>> finalCost;
-    //ct::optcon::TermQuadratic<3, 2>* finalCost = new ct::optcon::TermQuadratic<3, 2>;
-    std::shared_ptr<ct::optcon::CostFunctionQuadratic<3, 2>> costFunction;
-    //ct::optcon::CostFunctionQuadratic<3, 2>* costFunction = new ct::optcon::CostFunctionAnalytical<3, 2>;
-    std::shared_ptr<ct::core::SystemLinearizer<3, 2>> adLinearizer;
-
-    ct::optcon::ContinuousOptConProblem<3, 2> optConProblem;
-
-    //ct::optcon::NLOptConSolver<3, 2> iLQR;
-    //ct::optcon::ContinuousOptConProblem<3, 2>, ct::optcon::NLOptConSettings, ct::optcon::mpc_settings);*/
-
-    //ct::core::StateFeedbackController<3, 2> newPolicy;
-
-    //ct::optcon::MPC<ct::optcon::NLOptConSolver<3, 2>> ilqr_mpc;
-
-    //std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::duration<long, std::ratio<1, 1000000000>>> start_time;
-
-    /*ct::core::StateVector<3> x_now;
-    ct::core::StateVector<3> x_ref;
-    ct::core::StateVector<3> x_ref_current;
-    ct::core::ControlVector<2> u;
-
-    double rostime_now;
-    ct::core::Time t_now;
-    ct::core::Time t_final;
-    ct::core::Time ts_newPolicy;
-
-
-    ControllerPtr_t controller;
-    LinearSystemPtr_t Linearizer;
-    NLOPPtr_t nlop_problem;
-    MPCPtr_t mpc;
-    PolicyPtr_t newPolicy;
-    CostFuncPtr_t costFunc;
-    TermPtr_t termQuad_interm, termQuad_final;
-    size_t N;
-
-    std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::duration<long, std::ratio<1, 1000000000>>> start_time;
-    std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::duration<long, std::ratio<1, 1000000000>>> current_time;
-    bool first_pass_2 = true;
-    bool controller_not_created_ = true;
-    bool overview_ = true;*/
 
 };

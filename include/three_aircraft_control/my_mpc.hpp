@@ -4,8 +4,6 @@
 #include <Eigen/Core>
 #include <vector>
 
-//using namespace ct::core;
-//using namespace ct::optcon;
 using CppAD::AD;
 using namespace std;
 
