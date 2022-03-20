@@ -15,6 +15,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+install(DIRECTORY
+launch
+DESTINATION share/${PROJECT_NAME}/
+)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -48,7 +53,7 @@ ament_export_dependencies(rosidl_default_runtime)
 
 add_executable(three_aircraft_control_demo
   src/three_aircraft_control.cpp
-  src/Main_Controler.cpp
+  src/Distributed_Controller.cpp
 )
 
 ament_target_dependencies(three_aircraft_control_demo
@@ -67,10 +72,10 @@ ament_target_dependencies(three_aircraft_control_demo
 
 install(TARGETS three_aircraft_control_demo
  DESTINATION lib/${PROJECT_NAME})
- 
+
 rosidl_target_interfaces(three_aircraft_control_demo
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
- 
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

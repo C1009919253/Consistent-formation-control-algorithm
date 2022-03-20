@@ -35,7 +35,9 @@ Then build by command "**colcon build**".
 
 Next, run command "**gazebo world/three_aircraft_formation.world**"
 
-Then run command "**ros2 run three_aircraft_control three_aircraft_control_demo**"
+~~Then run command "**ros2 run three_aircraft_control three_aircraft_control_demo**"~~
+
+Then run command **ros2 launch three_aircraft_control t_a_c.py.**
 
 You may see something great.
 
@@ -71,6 +73,12 @@ Working on MPC, but a little difficult...
 
 0.3.17: Clean some code...
 
+0.3.20: Add a launch start file, now must start with ros2 launch if you want to use distributed controller.
+
+Add distributed controllers...
+
+Update node graph...
+
 ## TODO:
 
 1. ~~Add a subscription to change every robot's offset~~, choose the leader robot and so on.
@@ -78,9 +86,9 @@ Working on MPC, but a little difficult...
 3. Add a controller like ~~PID~~ or MPC.(~~Now it's position control...~~)
 4. ~~Fix bug...~~ **Now no bug found!**
 5. ~~Make source away from hpp...~~(It's not import but easy...)
-6. ~~Get some Wend-Oil~~, **I wanna sleep!!!** ~~And I'm gonna sleep!!!~~ Got a lot of wend-oil now... I have to do something in my dissertation... Oh Susanna, don't you cry for me...
+6. ~~Get some Wend-Oil~~, **I wanna sleep!!!** ~~And I'm gonna sleep!!!~~ ~~Got a lot of wend-oil now... I have to do something in my dissertation... Oh Susanna, don't you cry for me...~~
 7. ~~Test algorithm in real system...~~(Hope no ~~error~~...)
 8. Clean code! It's too redundancy!!!!! Code logic becomes rediculous??? (But works......)
 9. Fix PID output, it's negetive? To make code work, I put a - before the output......(That's really stupid...)
 10. ~~Add MPC!~~
-11. ~~**CLEARN YOUR CODE! IT IS REDUNDANCY AGAIN!!!**~~
+11. **CLEARN YOUR CODE! IT IS REDUNDANCY AGAIN!!!**
