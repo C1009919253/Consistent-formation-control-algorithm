@@ -27,7 +27,7 @@ Install ROS2 and Control Toolbox.(You may find them in github...)
 
 Install gazebo.
 
-Copy "model/**my_model**" to the model path of gazebo.
+~~Copy "model/**my_model**" to the model path of gazebo.~~ No need.
 
 Then build by command "**colcon build**".
 
@@ -71,13 +71,21 @@ Working on MPC, but a little difficult...
 
 03.16: I ADD A MPC ON ROBOT2!!! Thanks to [JunshengFu/Model-Predictive-Control](https://github.com/JunshengFu/Model-Predictive-Control) that gives me inspiration, I change his code to my_mpc.hpp, mostly the model and the cost function.
 
-0.3.17: Clean some code...
+03.17: Clean some code...
 
-0.3.20: Add a launch start file, now must start with ros2 launch if you want to use distributed controller.
+03.20: Add a launch start file, now must start with ros2 launch if you want to use distributed controller.
 
 Add distributed controllers...
 
 Update node graph...
+
+03.25: Optimize cost fuction, there is a typement of a avoiding barrier...
+
+Add repulsion force to avoid barrier... (Need to update params...)
+
+Add some new video...
+
+Clean model file...
 
 ## TODO:
 
@@ -92,3 +100,4 @@ Update node graph...
 9. Fix PID output, it's negetive? To make code work, I put a - before the output......(That's really stupid...)
 10. ~~Add MPC!~~
 11. **CLEARN YOUR CODE! IT IS REDUNDANCY AGAIN!!!**
+12. Avoiding Barrier!

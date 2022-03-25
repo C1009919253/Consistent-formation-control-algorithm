@@ -1,7 +1,7 @@
 <?xml version='1.0'?>
 <sdf version='1.6'>
 	<model name='my_robot'>
-      	<!--<pose>0 0 0.325 0 -0 0</pose>-->
+      	<pose>0 0 0.325 0 -0 0</pose>
 
       	<link name='chassis'>
         	<pose>-0.151427 -0 0.175 0 -0 0</pose>
@@ -186,6 +186,31 @@
       <joint name='caster_wheel' type='ball'>
         <parent>chassis</parent>
         <child>caster</child>
+      </joint>
+      
+      <link name="ray_link">
+      <pose>0.2 0 0.55 0 0 0</pose>
+        <visual name="visual_box">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.05</size>
+            </box>
+          </geometry>
+        </visual>
+        <collision name="collision_box">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.05</size>
+            </box>
+          </geometry>
+          <laser_retro>100.0</laser_retro>
+        </collision>
+   	
+   	</link>
+
+      <joint name="ray_joint" type="fixed">
+	<child>ray_link</child>
+	<parent>chassis</parent>
       </joint>
 
     </model>

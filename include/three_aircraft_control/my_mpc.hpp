@@ -1,3 +1,5 @@
+// A mpc without planner
+
 #pragma once
 #include <cppad/cppad.hpp>
 #include <cppad/ipopt/solve.hpp>
@@ -30,7 +32,7 @@ static double dt = 0.12;  //tested with 0.3, 0.12, 0.1, 0.08
 const double Lf = 2.67;
 
 // Reference velocity
-static double ref_v = 0.5; // convert from mph to m/s
+//static double ref_v = 0.5; // convert from mph to m/s
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -49,12 +51,20 @@ class FG_eval {
 public:
   // Fitted polynomial coefficients
   Eigen::VectorXd coeffs;
-  double pv2;
-  double pw2;
-  FG_eval(Eigen::VectorXd coeffs, double pv2, double pw2) { this->coeffs = coeffs; this->pv2 = pv2; this->pw2 = pw2;}
+  vector<double> gravitation;
+  vector<double> repulsion;
+  vector<double> feedback;
+  FG_eval(Eigen::VectorXd coeffs, vector<double> gravitation, vector<double> repulsion, vector<double> feedback)
+  {
+      this->coeffs = coeffs;
+      this->gravitation = gravitation;
+      this->repulsion = repulsion;
+      this->feedback = feedback;
+  }
 
   typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
-  void operator()(ADvector& fg, const ADvector& vars) {
+  void operator()(ADvector& fg, const ADvector& vars)
+  {
     // TODO: implement MPC
     // fg a vector of constraints, x is a vector of constraints.
     // NOTE: You'll probably go back and forth between this function and
@@ -63,21 +73,48 @@ public:
 
     // Define the cost functions
     // cost based on the state
-    size_t i;
-    /*for (i = 0; i < N; ++i) {
-      fg[0] += 100 * CppAD::pow(vars[cte_start + i], 2);
-      fg[0] += CppAD::pow(vars[epsi_start + i], 2);
-      fg[0] += CppAD::pow(vars[v_start+ i] - ref_v, 2);
+    //size_t i;
+    /*for (int i = 0; i < N; ++i) {
+      fg[0] += CppAD::pow(vars[x_start + i], 2);
+      fg[0] += CppAD::pow(vars[y_start + i], 2);
+      fg[0] += CppAD::pow(vars[psi_start+ i], 2);
     }*/
 
+    /*for (i = 0; i < N; ++i)
+    {
+      fg[0] += CppAD::pow(vars[x_start + i], 2);
+      fg[0] += CppAD::pow(vars[y_start + i], 2);
+      //fg[0] += CppAD::pow(vars[psi_start+ i], 2);
+        //fg[0] += 1000.0/vars[x_start + i]+1000.0/vars[y_start + i];
+        fg[0] += 1000.0 / (0.001 + CppAD::pow(vars[x_start + i], 2) + CppAD::pow(vars[y_start + i], 2));
+    }*/
+
+    for(int i = 0; i < gravitation.size(); i+=2) // gravitation
+    {
+        for(int j = 0; j < N; j++)
+        {
+            fg[0] += CppAD::pow(gravitation[i] - vars[x_start + j], 2) + CppAD::pow(gravitation[i+1] - vars[y_start + j], 2);
+        }
+    }
+
+    for(int i = 0; i < repulsion.size(); i+=2) // repulsion
+    {
+        for(int j = 0; j < N; j++)
+        {
+            fg[0] += 10000.0 / (0.001 + CppAD::pow(repulsion[i] - vars[x_start + j], 2) + CppAD::pow(repulsion[i+1] - vars[y_start + j], 2));
+        }
+    }
+
     // cost based on the actuator values
-    for (i = 0; i < N - 1; ++i) {
-      fg[0] += 100 * CppAD::pow(vars[delta_start + i] - pw2, 2);
-      fg[0] += CppAD::pow(vars[a_start + i] - pv2, 2);
+    for (int i = 0; i < N - 1; ++i)
+    {
+      fg[0] += 100 * CppAD::pow(vars[delta_start + i] + feedback[1], 2);
+      fg[0] += CppAD::pow(vars[a_start + i] - feedback[0], 2);
     }
 
     // cost based on the sequential value
-    for (i = 0; i < N - 2; ++i) {
+    for (int i = 0; i < N - 2; ++i)
+    {
       fg[0] += 100 *CppAD::pow(vars[delta_start + i + 1] - vars[delta_start + i], 2);
       fg[0] += CppAD::pow(vars[a_start + i +1] - vars[a_start + i], 2);
     }
@@ -97,7 +134,7 @@ public:
     fg[1 + epsi_start] = vars[epsi_start];*/
 
     // The rest of the constraints
-    for (i = 0; i < N - 1; i++) {
+    for (int i = 0; i < N - 1; i++) {
       // state at time t+1
       AD<double> x1 = vars[x_start + i + 1];
       AD<double> y1 = vars[y_start + i + 1];
@@ -145,7 +182,7 @@ public:
     ~my_mpc()
     {}
 
-    std::vector<double> Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs, double pv2, double pw2)
+    std::vector<double> Solve(Eigen::VectorXd x0, Eigen::VectorXd coeffs, vector<double> gravitation, vector<double> repulsion, vector<double> feedback)
     {
         typedef CPPAD_TESTVECTOR(double) Dvector;
 
@@ -164,7 +201,8 @@ public:
           // Initial value of the independent variables, which should be 0 besides initial state.
           Dvector vars(n_vars);
           size_t i;
-          for (i = 0; i < n_vars; i++) {
+          for (i = 0; i < n_vars; i++)
+          {
             vars[i] = 0;
           }
 
@@ -180,7 +218,8 @@ public:
           Dvector vars_upperbound(n_vars);
 
           // Set lower and upper limits for variables.
-          for (i = 0; i < delta_start; i++) {
+          for (i = 0; i < delta_start; i++)
+          {
             vars_lowerbound[i] = -1.0e19;
             vars_upperbound[i] = 1.0e19;
           }
@@ -188,23 +227,26 @@ public:
           // The upper and lower limits of delta are set to -25 and 25
           // degrees (values in radians).
           // NOTE: Feel free to change this to something else.
-          for (i = delta_start; i < a_start; i++) {
+          for (i = delta_start; i < a_start; i++)
+          {
             vars_lowerbound[i] = -1.0;
             vars_upperbound[i] = 1.0;
           }
 
           // Acceleration/decceleration upper and lower limits.
           // NOTE: Feel free to change this to something else.
-          for (i = a_start; i < n_vars; i++) {
-            vars_lowerbound[i] = -1.0;
-            vars_upperbound[i] = 1.0;
+          for (i = a_start; i < n_vars; i++)
+          {
+            vars_lowerbound[i] = -2.0;
+            vars_upperbound[i] = 2.0;
           }
 
           // Lower and upper limits for the constraints
           // Should be 0 besides initial state.
           Dvector constraints_lowerbound(n_constraints);
           Dvector constraints_upperbound(n_constraints);
-          for (i = 0; i < n_constraints; i++) {
+          for (i = 0; i < n_constraints; i++)
+          {
             constraints_lowerbound[i] = 0;
             constraints_upperbound[i] = 0;
           }
@@ -225,7 +267,7 @@ public:
 
 
           // object that computes objective and constraints
-          FG_eval fg_eval(coeffs, pv2, pw2);
+          FG_eval fg_eval(coeffs, gravitation, repulsion, feedback);
 
 
           // options for IPOPT solver
@@ -263,7 +305,8 @@ public:
           vector<double> ouputs = {steering, acceleration};
 
           // attach the predicted route to display
-          for (i=0; i<N; i++) {
+          for (i=0; i<N; i++)
+          {
             ouputs.push_back(solution.x[x_start+i]);
             ouputs.push_back(solution.x[y_start+i]);
           }

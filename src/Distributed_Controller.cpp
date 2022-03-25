@@ -84,9 +84,9 @@ Distributed_Controller::Distributed_Controller(): Node("Distributed_Controller")
     //publisher2 = this->create_publisher<geometry_msgs::msg::Twist>("demo2/cmd_demo", 10);
     //publisher3 = this->create_publisher<geometry_msgs::msg::Twist>("demo3/cmd_demo", 10);
 
-    publisher_test = this->create_publisher<geometry_msgs::msg::Twist>("Vehicle3/cmd_vel", 10);
+    publisher_test = this->create_publisher<geometry_msgs::msg::Twist>(node_name + "/cmd_vel", 10);
 
-    timer1 = this->create_wall_timer(1000ms, std::bind(&Distributed_Controller::timer1_callback, this));
+    timer1 = this->create_wall_timer(50ms, std::bind(&Distributed_Controller::timer1_callback, this));
     timer2 = this->create_wall_timer(50ms, std::bind(&Distributed_Controller::timer2_callback, this));
     timer3 = this->create_wall_timer(50ms, std::bind(&Distributed_Controller::timer3_callback, this));
 
@@ -98,14 +98,14 @@ Distributed_Controller::Distributed_Controller(): Node("Distributed_Controller")
 
     subscription4 = this->create_subscription<three_aircraft_control::msg::Offsets>("MC/set_offsets", 10, std::bind(&Distributed_Controller::topic4_callback, this, std::placeholders::_1));
 
-    subscription_test = this->create_subscription<geometry_msgs::msg::Quaternion>("Vehicle3/object_topic", 10, std::bind(&Distributed_Controller::topic_callback_test, this, std::placeholders::_1));
+    subscription_test = this->create_subscription<geometry_msgs::msg::Quaternion>(node_name + "/object_topic", 10, std::bind(&Distributed_Controller::topic_callback_test, this, std::placeholders::_1));
 
-    offsetx12 = -10;
-    offsety12 = 10;
+    offsetx12 = 0;
+    offsety12 = 0;
     offsetx22 = 0;
     offsety22 = 0;
-    offsetx13 = -10;
-    offsety13 = -10;
+    offsetx13 = 0;
+    offsety13 = 0;
     offsetx33 = 0;
     offsety33 = 0;
 
@@ -126,6 +126,15 @@ Distributed_Controller::Distributed_Controller(): Node("Distributed_Controller")
 void Distributed_Controller::timer1_callback() // test~
 {
     geometry_msgs::msg::Twist twist_test;
+
+    if (robot_type == '1')
+    {
+        twist_test.linear.x = -0.15;
+        publisher_test->publish(twist_test); // leader run with no eye
+        return;
+    }
+
+
     //twist_test.linear.x = (test) ? 0.1 : 0;
     //test = false;
 
@@ -225,22 +234,56 @@ void Distributed_Controller::timer2_callback()
     {
         v2 = odom2.twist.twist.linear.x;
         pp2 = odom2.twist.twist.angular.z;
+        pp2 = yaw2;
     }
     else
     {
         v2 = odom3.twist.twist.linear.x;
         pp2 = odom3.twist.twist.angular.z;
+        pp2 = yaw3;
     }
 
     double px2 = 0 + v2 * cos(0) * 0.1;
     double py2 = 0 + v2 * sin(0) * 0.1;
     double psi2 = 0 - pp2;
+    /*double px2 = -2 * vx2;
+    double py2 = -2 * vy2;
+    double psi2 = pp2;*/
+
 
     state << px2, py2, psi2;
 
-    auto vars = mpc.Solve(state, coeffs, pv2, -pw2);
+    vector<double> gravitation;
+    vector<double> repulsion;
+    vector<double> feedback;
 
-    double w2 = -vars[0];
+    gravitation.clear();
+    repulsion.clear();
+    feedback.clear();
+
+
+
+    if (robot_type == '2')
+    {
+        repulsion.push_back(x1-x2);
+        repulsion.push_back(y1-y2);
+        repulsion.push_back(x3-x2);
+        repulsion.push_back(y3-y2);
+    }
+    else
+    {
+        repulsion.push_back(x1-x3);
+        repulsion.push_back(y1-y3);
+        repulsion.push_back(x2-x3);
+        repulsion.push_back(y2-y3);
+    }
+
+    feedback.push_back(pv2);
+    feedback.push_back(-pw2);
+
+    auto vars = mpc.Solve(state, coeffs, gravitation, repulsion, feedback);
+
+    double w2 = vars[0];
     v2 = vars[1];
 
     //v2 = -pid.computeControl(v2, current_time);
@@ -327,5 +370,6 @@ void Distributed_Controller::topic4_callback(three_aircraft_control::msg::Offset
 void Distributed_Controller::topic_callback_test(geometry_msgs::msg::Quaternion::SharedPtr tesst)
 {
     goal_location = *tesst;
+
     //printf("%f, %f, %f, %f", goal_location.x, goal_location.y, goal_location.z, goal_location.w);
 }
