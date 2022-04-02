@@ -97,13 +97,13 @@ public:
         }
     }
 
-    for(int i = 0; i < repulsion.size(); i+=2) // repulsion
+    /*for(int i = 0; i < repulsion.size(); i+=2) // repulsion
     {
         for(int j = 0; j < N; j++)
         {
-            fg[0] += 10000.0 / (0.001 + CppAD::pow(repulsion[i] - vars[x_start + j], 2) + CppAD::pow(repulsion[i+1] - vars[y_start + j], 2));
+            fg[0] += 2000.0 / (0.001 + CppAD::pow(repulsion[i] - vars[x_start + j], 2) + CppAD::pow(repulsion[i+1] - vars[y_start + j], 2));
         }
-    }
+    }*/
 
     // cost based on the actuator values
     for (int i = 0; i < N - 1; ++i)

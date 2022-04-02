@@ -1,4 +1,4 @@
-#include "three_aircraft_control/Distributed_Controller.hpp"
+﻿#include "three_aircraft_control/Distributed_Controller.hpp"
 
 // Adapted from
 // https://github.com/JunshengFu/Model-Predictive-Control/tree/master/src/main.cpp
@@ -87,7 +87,7 @@ Distributed_Controller::Distributed_Controller(): Node("Distributed_Controller")
     publisher_test = this->create_publisher<geometry_msgs::msg::Twist>(node_name + "/cmd_vel", 10);
 
     timer1 = this->create_wall_timer(50ms, std::bind(&Distributed_Controller::timer1_callback, this));
-    timer2 = this->create_wall_timer(50ms, std::bind(&Distributed_Controller::timer2_callback, this));
+    timer2 = this->create_wall_timer(100ms, std::bind(&Distributed_Controller::timer2_callback, this));
     timer3 = this->create_wall_timer(50ms, std::bind(&Distributed_Controller::timer3_callback, this));
 
     //printf("%s",aasc[0].c_str());
@@ -98,14 +98,16 @@ Distributed_Controller::Distributed_Controller(): Node("Distributed_Controller")
 
     subscription4 = this->create_subscription<three_aircraft_control::msg::Offsets>("MC/set_offsets", 10, std::bind(&Distributed_Controller::topic4_callback, this, std::placeholders::_1));
 
+    subscription5 = this->create_subscription<sensor_msgs::msg::LaserScan>(node_name + "/laserscan", 10, std::bind(&Distributed_Controller::topic5_callback, this, std::placeholders::_1));
+
     subscription_test = this->create_subscription<geometry_msgs::msg::Quaternion>(node_name + "/object_topic", 10, std::bind(&Distributed_Controller::topic_callback_test, this, std::placeholders::_1));
 
     offsetx12 = 0;
-    offsety12 = 0;
+    offsety12 = 15;
     offsetx22 = 0;
     offsety22 = 0;
     offsetx13 = 0;
-    offsety13 = 0;
+    offsety13 = -15;
     offsetx33 = 0;
     offsety33 = 0;
 
@@ -171,16 +173,18 @@ void Distributed_Controller::timer1_callback() // test~
 
 void Distributed_Controller::timer2_callback()
 {
+    double vx2, vy2;
+
     if (robot_type == '1')
     {
         twist1.linear.x = 1;
+        twist1.angular.z = 0.0;
         publisher->publish(twist1); // leader run with no eye
         return;
+        /*vx2 = 1.0;
+        vy2 = 0.0;*/
     }
-
-    double vx2, vy2;
-
-    if(robot_type == '2')
+    else if (robot_type == '2')
     {
         vx2 = -0.5 * ((x2-x1-offsetx12)+offsetx22); // offsets are all in reference coordinate system, to change them you maight compute tem
         vy2 = -0.5 * ((y2-y1-offsety12)+offsety22);
@@ -196,7 +200,9 @@ void Distributed_Controller::timer2_callback()
     double pv2 = (abs(cos(theta12)) > abs(sin(theta12))) ? vx2 / cos(theta12) : vy2 / sin(theta12); // ➗0bug fixed
     double pw2;
 
-    if(robot_type == '2')
+    if (robot_type == '1')
+        pw2 = 0;
+    else if (robot_type == '2')
         pw2 = theta12 - yaw2;
     else
         pw2 = theta12 - yaw3;
@@ -229,8 +235,11 @@ void Distributed_Controller::timer2_callback()
     Eigen::VectorXd state(3);
 
     double v2, pp2;
-
-    if (robot_type == '2')
+    if (robot_type == '1')
+    {
+        pp2 = 0;
+    }
+    else if (robot_type == '2')
     {
         v2 = odom2.twist.twist.linear.x;
         pp2 = odom2.twist.twist.angular.z;
@@ -250,6 +259,12 @@ void Distributed_Controller::timer2_callback()
     double py2 = -2 * vy2;
     double psi2 = pp2;*/
 
+    if (robot_type == '1')
+    {
+        px2 = 2.0;
+        py2 = 0.0;
+    }
+
 
     state << px2, py2, psi2;
 
@@ -261,10 +276,18 @@ void Distributed_Controller::timer2_callback()
     repulsion.clear();
     feedback.clear();
 
-
-
-    if (robot_type == '2')
+    if (robot_type == '1')
     {
+        repulsion.push_back(-x1+x2);
+        repulsion.push_back(-y1+y2);
+        repulsion.push_back(-x1+x3);
+        repulsion.push_back(-y1+y3);
+        // emmmm... what ever...
+    }
+    else if (robot_type == '2')
+    {
+        gravitation.push_back(x1-x2+offsetx12);
+        gravitation.push_back(y1-y2+offsety12);
         repulsion.push_back(x1-x2);
         repulsion.push_back(y1-y2);
         repulsion.push_back(x3-x2);
@@ -272,14 +295,46 @@ void Distributed_Controller::timer2_callback()
     }
     else
     {
+        gravitation.push_back(x1-x3+offsetx13);
+        gravitation.push_back(y1-y3+offsety13);
         repulsion.push_back(x1-x3);
         repulsion.push_back(y1-y3);
         repulsion.push_back(x2-x3);
         repulsion.push_back(y2-y3);
     }
 
+    /*for(int i = 0; i < ray.points.size(); i++)
+    {
+        if (ray.points[i].z < 0.1)
+        {
+            repulsion.push_back(ray.points[i].x);
+            repulsion.push_back(ray.points[i].y);
+        }
+    }*/
+    double range_max = ray.range_max;
+    double range_min = ray.range_min;
+    double angle_scale = ray.angle_increment;
+    double angle_min = ray.angle_min;
+
+    for (int i = 0; i < ray.ranges.size(); i++)
+    {
+        double range = ray.ranges[i];
+        if (range > 0 && range < 5)
+        {
+            double angle = angle_min + i * angle_scale;
+            double x = range * cos(angle);
+            double y = range * sin(angle);
+            repulsion.push_back(x);
+            repulsion.push_back(y);
+        }
+
+    }
+
     feedback.push_back(pv2);
     feedback.push_back(-pw2);
+
+    /*feedback.push_back(-1.0);
+    feedback.push_back(0);*/
 
     auto vars = mpc.Solve(state, coeffs, gravitation, repulsion, feedback);
 
@@ -289,12 +344,16 @@ void Distributed_Controller::timer2_callback()
     //v2 = -pid.computeControl(v2, current_time);
 
 
-    /*v2 = (abs(v2) < 2) ? v2 : v2/abs(v2)*2;
+    /**/
 
-    w2 = (abs(w2) < 2) ? w2 : w2/abs(w2)*2;*/
+    /*v2 = -pid.computeControl(pv2, current_time);
+
+    v2 = (abs(v2) < 2) ? v2 : v2/abs(v2)*2;
+
+        pw2 = (abs(pw2) < 2) ? pw2 : pw2/abs(pw2)*2;*/
 
     twist2.linear.x = v2;
-    twist2.angular.z = w2;
+    twist2.angular.z = pw2;
     publisher->publish(twist2);
 
     ptsx2.clear();
@@ -372,4 +431,9 @@ void Distributed_Controller::topic_callback_test(geometry_msgs::msg::Quaternion:
     goal_location = *tesst;
 
     //printf("%f, %f, %f, %f", goal_location.x, goal_location.y, goal_location.z, goal_location.w);
+}
+
+void Distributed_Controller::topic5_callback(sensor_msgs::msg::LaserScan::SharedPtr odom)
+{
+    ray = *odom;
 }

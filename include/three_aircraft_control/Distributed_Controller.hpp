@@ -24,6 +24,8 @@
 #include "geometry_msgs/msg/quaternion.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "tf2_msgs/msg/tf_message.hpp"
+//#include "sensor_msgs/msg/point_cloud.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include "three_aircraft_control/my_mpc.hpp"
@@ -55,6 +57,8 @@ private:
 
     void topic_callback_test(geometry_msgs::msg::Quaternion::SharedPtr tesst); // 接收位置信息
 
+    void topic5_callback(sensor_msgs::msg::LaserScan::SharedPtr odom);
+
     std::string node_name;
 
     rclcpp::TimerBase::SharedPtr timer1, timer2, timer3;
@@ -85,6 +89,8 @@ private:
 
     rclcpp::Subscription<three_aircraft_control::msg::Offsets>::SharedPtr subscription4; // control the formation
 
+    rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr subscription5;
+
     rclcpp::Subscription<geometry_msgs::msg::Quaternion>::SharedPtr subscription_test; // for a test...
 
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_test;
@@ -103,5 +109,7 @@ private:
     double current_time;
 
     char robot_type;
+
+    sensor_msgs::msg::LaserScan ray;
 
 };

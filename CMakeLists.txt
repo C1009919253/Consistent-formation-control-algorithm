@@ -27,6 +27,7 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(tf2_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(ct_core REQUIRED)
@@ -59,6 +60,7 @@ add_executable(three_aircraft_control_demo
 ament_target_dependencies(three_aircraft_control_demo
   "rclcpp"
   "std_msgs"
+  "sensor_msgs"
   "geometry_msgs"
   "nav_msgs"
   "tf2_msgs"
