@@ -179,6 +179,9 @@ void Distributed_Controller::timer2_callback()
     {
         twist1.linear.x = 1;
         twist1.angular.z = 0.0;
+
+        twist1.linear.y = (x1+offsetx12-x2)*(x1+offsetx12-x2)+(y1+offsety12-y2)*(y1+offsety12-y2);
+
         publisher->publish(twist1); // leader run with no eye
         return;
         /*vx2 = 1.0;
@@ -336,21 +339,21 @@ void Distributed_Controller::timer2_callback()
     /*feedback.push_back(-1.0);
     feedback.push_back(0);*/
 
-    auto vars = mpc.Solve(state, coeffs, gravitation, repulsion, feedback);
+    //auto vars = mpc.Solve(state, coeffs, gravitation, repulsion, feedback);
 
-    double w2 = vars[0];
-    v2 = vars[1];
+    /*double w2 = vars[0];
+    v2 = vars[1];*/
 
     //v2 = -pid.computeControl(v2, current_time);
 
 
     /**/
 
-    /*v2 = -pid.computeControl(pv2, current_time);
+    v2 = -pid.computeControl(pv2, current_time);
 
     v2 = (abs(v2) < 2) ? v2 : v2/abs(v2)*2;
 
-        pw2 = (abs(pw2) < 2) ? pw2 : pw2/abs(pw2)*2;*/
+        pw2 = (abs(pw2) < 2) ? pw2 : pw2/abs(pw2)*2;
 
     twist2.linear.x = v2;
     twist2.angular.z = pw2;
